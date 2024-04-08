@@ -3,13 +3,16 @@ package org.todo.service.task;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.todo.entity.Task;
 import org.todo.entity.User;
 import org.todo.exception.TodoException;
+import org.todo.mapper.CategoryMapper;
 import org.todo.mapper.TaskMapper;
 import org.todo.model.task.request.TaskRequest;
 import org.todo.model.task.response.TaskResponse;
 import org.todo.repository.TaskRepository;
+import org.todo.service.category.CategoryService;
 import org.todo.service.user.UserService;
 
 import java.time.LocalDate;
@@ -21,15 +24,21 @@ public class TaskServiceImpl implements TaskService {
     private final TaskRepository taskRepository;
     private final UserService userService;
     private final TaskMapper taskMapper;
+    private final CategoryMapper categoryMapper;
+    private final CategoryService categoryService;
 
     @Autowired
     public TaskServiceImpl(
             TaskRepository taskRepository,
             TaskMapper taskMapper,
-            UserService userService) {
+            CategoryMapper categoryMapper,
+            UserService userService,
+            CategoryService categoryService) {
         this.taskRepository = taskRepository;
         this.taskMapper = taskMapper;
+        this.categoryMapper = categoryMapper;
         this.userService = userService;
+        this.categoryService = categoryService;
     }
 
     @Override
@@ -45,20 +54,29 @@ public class TaskServiceImpl implements TaskService {
         );
     }
 
-    @Override
-    public TaskResponse getTask(Long id, String email) {
+    private Task getSpecificTask(Long id, String email) {
         User user = userService.getUser(email);
-        return taskMapper.toTaskResponse(
-                taskRepository.findByUserAndId(user, id).orElseThrow(
-                        () -> new TodoException("Task not found", HttpStatus.NOT_FOUND)
-                )
+        return taskRepository.findByUserAndId(user, id).orElseThrow(
+                () -> new TodoException("Task not found", HttpStatus.NOT_FOUND)
         );
     }
 
+
     @Override
+    public TaskResponse getTask(Long id, String email) {
+        return taskMapper.toTaskResponse(getSpecificTask(id, email));
+    }
+
+    @Override
+    @Transactional
     public TaskResponse addTask(TaskRequest task, String email) {
         User user = userService.getUser(email);
         Task newTask = taskMapper.toTask(task, user, LocalDate.now());
+        if (task.getCategoryId() != null) {
+            newTask.setCategory(categoryMapper.toCategory(
+                    categoryService.findCategory(task.getCategoryId(), email))
+            );
+        }
         taskRepository.save(newTask);
         return taskMapper.toTaskResponse(newTask);
     }
@@ -77,20 +95,21 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    public void addToCategory(Long id, Long catId, String email) {
+        Task task = getSpecificTask(id, email);
+        task.setCategory(categoryService.getCategory(catId, email));
+        taskRepository.save(task);
+    }
+
+    @Override
     public void deleteTask(Long id, String email) {
-        User user = userService.getUser(email);
-        Task task = taskRepository.findByUserAndId(user, id).orElseThrow(
-                () -> new TodoException("Task not found", HttpStatus.NOT_FOUND)
-        );
+        Task task = getSpecificTask(id, email);
         taskRepository.delete(task);
     }
 
     @Override
     public void toggleComplete(Long id, String email) {
-        User user = userService.getUser(email);
-        Task task = taskRepository.findByUserAndId(user, id).orElseThrow(
-                () -> new TodoException("Task not found", HttpStatus.NOT_FOUND)
-        );
+        Task task = getSpecificTask(id, email);
         task.setCompleted(!task.isCompleted());
     }
 }

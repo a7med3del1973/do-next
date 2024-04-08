@@ -18,6 +18,16 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public void save(User user) {
+        userRepository.save(user);
+    }
+
+    @Override
+    public boolean existsByEmail(String email) {
+        return userRepository.existsByEmail(email);
+    }
+
+    @Override
     public User getUser(Long id) {
         return userRepository.findById(id).orElseThrow(
                 () -> new TodoException("User not found", HttpStatus.NOT_FOUND)

@@ -2,6 +2,9 @@ package org.todo.service.auth;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.todo.config.security.JwtService;
@@ -15,35 +18,41 @@ import org.todo.model.auth.request.RegisterRequest;
 import org.todo.model.auth.response.LoginResponse;
 import org.todo.model.auth.response.RegisterResponse;
 import org.todo.model.auth.response.VerifyEmailResponse;
-import org.todo.repository.UserRepository;
 import org.todo.service.email.EmailService;
 import org.todo.service.token.TokenService;
+import org.todo.service.user.UserService;
 
 
 @Service
 public class AuthServiceImpl implements AuthService {
 
-    private final UserRepository userRepository;
+    private final UserService userService;
     private final JwtService jwtService;
     private final EmailService emailService;
     private final TokenService tokenService;
+    private final AuthenticationManager authenticationManager;
+    private final PasswordEncoder passwordEncoder;
 
     @Autowired
     public AuthServiceImpl(
-            UserRepository userRepository,
+            UserService userService,
             JwtService jwtService,
             EmailService emailService,
-            TokenService tokenService) {
-        this.userRepository = userRepository;
+            TokenService tokenService,
+            PasswordEncoder passwordEncoder,
+            AuthenticationManager authenticationManager) {
+        this.userService = userService;
         this.jwtService = jwtService;
         this.emailService = emailService;
         this.tokenService = tokenService;
+        this.passwordEncoder = passwordEncoder;
+        this.authenticationManager = authenticationManager;
     }
 
     @Override
     @Transactional
     public RegisterResponse register(RegisterRequest registerRequest) {
-        boolean isUserExists = userRepository.existsByEmail(registerRequest.getEmail());
+        boolean isUserExists = userService.existsByEmail(registerRequest.getEmail());
         if (isUserExists) {
             throw new TodoException("User already exists", HttpStatus.BAD_REQUEST);
         }
@@ -51,11 +60,11 @@ public class AuthServiceImpl implements AuthService {
                 .firstName(registerRequest.getFirstName())
                 .lastName(registerRequest.getLastName())
                 .email(registerRequest.getEmail())
-                .password(registerRequest.getPassword())
+                .password(passwordEncoder.encode(registerRequest.getPassword()))
                 .role(Role.USER)
                 .isVerified(false)
                 .build();
-        userRepository.save(user);
+        userService.save(user);
 
         String verificationToken = tokenService.generateToken();
         tokenService.saveToken(
@@ -88,8 +97,14 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginResponse login(LoginRequest loginRequest) {
-        User user = userRepository.findByEmail(loginRequest.getEmail())
-                .orElseThrow(() -> new TodoException("Incorrect email or password", HttpStatus.UNAUTHORIZED));
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.getEmail() , loginRequest.getPassword())
+            );
+        } catch (Exception e) {
+            throw new TodoException("Username or password is incorrect" , HttpStatus.UNAUTHORIZED);
+        }
+        User user = userService.getUser(loginRequest.getEmail());
         if (!user.getIsVerified()) {
             throw new TodoException("User is not verified, please verify your email", HttpStatus.UNAUTHORIZED);
         }
@@ -110,7 +125,7 @@ public class AuthServiceImpl implements AuthService {
         Token emailVerificationToken = tokenService.findByToken(token);
         User user = emailVerificationToken.getUser();
         user.setIsVerified(true);
-        userRepository.save(user);
+        userService.save(user);
         tokenService.deleteToken(emailVerificationToken);
         return VerifyEmailResponse.builder()
                 .statusCode(HttpStatus.OK.value())
