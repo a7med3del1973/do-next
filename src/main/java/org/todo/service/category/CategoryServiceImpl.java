@@ -38,7 +38,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public Category getCategory(String name, String email) {
-        return categoryRepository.findByNameAndUser(name, userService.getUser(email))
+        return categoryRepository.findByNameAndUser(name.toLowerCase(), userService.getUser(email))
                 .orElseThrow(
                         () -> new TodoException("Category not found", HttpStatus.NOT_FOUND)
                 );
@@ -55,9 +55,12 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public CategoryResponse createCategory(String name, String email) {
         User user = userService.getUser(email);
+        if (categoryRepository.existsByNameIgnoreCaseAndUser(name.toLowerCase(), user)) {
+            throw new TodoException("Category already exists", HttpStatus.BAD_REQUEST);
+        }
         return categoryMapper.toCategoryResponse(
                 categoryRepository.save(Category.builder()
-                        .name(name)
+                        .name(name.toLowerCase())
                         .user(user)
                         .build())
         );
