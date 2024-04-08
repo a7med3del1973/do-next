@@ -1,5 +1,6 @@
 package org.todo.model.task.request;
 
+import jakarta.annotation.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,4 +17,6 @@ public class TaskRequest {
     private String description;
     private boolean completed;
     private LocalDate dueDate;
+    @Nullable
+    private Long categoryId;
 }

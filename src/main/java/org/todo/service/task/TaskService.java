@@ -11,6 +11,7 @@ public interface TaskService {
     TaskResponse getTask(Long id, String email);
     TaskResponse addTask(TaskRequest task, String email);
     TaskResponse updateTask(Long id, String email, TaskRequest task);
+    void addToCategory(Long id, Long catId, String email);
     void deleteTask(Long id, String email);
     void toggleComplete(Long id, String email);
 }

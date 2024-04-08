@@ -84,4 +84,14 @@ public class TaskController {
                 .build();
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/add/{taskId}/to-category/{catId}")
+    public ResponseEntity<Response> addTaskToCategory(Principal connectedUser, @PathVariable Long taskId, @PathVariable Long catId) {
+        taskService.addToCategory(taskId, catId, connectedUser.getName());
+        Response response = Response.builder()
+                .success(true)
+                .data("Task added to category successfully")
+                .build();
+        return ResponseEntity.ok(response);
+    }
 }
