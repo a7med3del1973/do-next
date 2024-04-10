@@ -1,0 +1,26 @@
+<div class="container vh-100">
+    <div class="card">
+        <div class="card-header">
+            <h2>{{task.title}}</h2>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="card-text">{{task.description}}</p>
+                </div>
+                <div class="col-md-6">
+                    <ul class="list-unstyled">
+                        <li><strong>Status: </strong> <span
+                                [class]="!task.completed ? 'text-danger' : 'text-success'">{{task.completed ?
+                                'Completed' : 'Not Completed'}}</span></li>
+                        <li><strong>Created Date: </strong> {{task.createdDate | date}}</li>
+                        <li><strong>Deadline: </strong> {{task.dueDate | date}}</li>
+                        <li><strong>Completed Date: </strong> <span
+                                [class]="!task.completed ? 'text-danger' : 'text-success'">{{task.completed ?
+                                (task.completedDate | date) : 'Not Completed'}}</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

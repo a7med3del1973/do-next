@@ -1,0 +1,78 @@
+<div class="task-list vh-100">
+    <div class="d-flex justify-content-between align-items-center py-3">
+        <h2>Your Tasks</h2>
+        <!-- Button trigger modal -->
+        <button type="button" class="btn btn-primary" (click)="onAdd()" data-bs-toggle="modal" data-bs-target="#taskModal">
+            Add a new task
+        </button>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="taskModal" tabindex="-1" aria-labelledby="taskModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="taskModalLabel">New Task</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form [formGroup]="taskForm">
+                        <div class="mb-3">
+                            <input type="number" formControlName="id" name="id" class="form-control" id="id" hidden>
+                        </div>
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Title</label>
+                            <input type="text" formControlName="title" name="title" class="form-control" id="title"
+                                required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea formControlName="description" name="description" class="form-control"
+                                id="description"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="dueDate" class="form-label">Due Date</label>
+                            <input type="date" formControlName="dueDate" name="dueDate" class="form-control"
+                                id="dueDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="categoryId" class="form-label">Category</label>
+                            <select formControlName="categoryId" class="form-control" id="categoryId">
+                                <option value="0">Select category</option>
+                                <option *ngFor="let category of categories" [value]="category.id">{{category.name}}
+                                </option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button *ngIf="addFlag" [disabled]="taskForm.invalid" (click)="addTask()" class="btn btn-success">Add</button>
+                    <button *ngIf="!addFlag" [disabled]="taskForm.invalid" (click)="updateTask()" class="btn btn-info">Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="list-group">
+        <a [routerLink]="['task', task.id]" *ngFor="let task of tasks"
+            [ngStyle]="task.completed ? { 'background-color': 'green', 'color': 'white' } : null"
+            class="list-group-item d-flex justify-content-between align-items-center m-2">
+            <div class="p-2">
+                <input class="m-2" type="checkbox" (click)="toggleComplete(task.id); $event.stopPropagation()" [(ngModel)]="task.completed">
+                <span style="font-weight: 700;" [ngStyle]="{'text-decoration': task.completed ? 'line-through' : 'none'}">{{task.title}}</span>
+                <span class="m-4" style="font-weight: 5 00;">Deadline: {{task.dueDate | date}}</span>
+            </div>
+            <div>
+                <span class="rounded-pill d-inline-flex">
+                    <a class="btn btn-info m-1" (click)="onEdit(task); $event.stopPropagation()" data-bs-toggle="modal" data-bs-target="#taskModal">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    <a class="btn btn-danger m-1" (click)="confirmDelete(task.id); $event.stopPropagation()">
+                        <i class="fas fa-trash"></i>
+                    </a>
+                </span>
+            </div>
+        </a>
+    </div>
+</div>
